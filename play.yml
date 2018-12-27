@@ -6,7 +6,7 @@
   tasks:
     - name: Configure host name
       hostname:
-        name: "{{ ansible_hostname }}"
+        name: "{{ inventory_hostname }}"
     - name: Configure default user
       user:
         name: pi
