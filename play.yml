@@ -89,6 +89,11 @@
           - source: /var/lib/docker/volumes
             target: /var/lib/docker/volumes
             type: bind
+        publish:
+          - published_port: 9001
+            target_port: 9001
+            protocol: tcp
+            type: host
         update_order: start-first
         update_parallelism: 2
         update_delay: 5
@@ -102,10 +107,6 @@
         image: portainer/portainer:latest
         networks:
           - portainer_agent
-        #args: 
-        #  - "-H" 
-        #  - "tcp://tasks.portainer_agent:9001"
-        #  - "--tlsskipverify"
         constraints:
           - "node.role == manager"
         publish:
@@ -121,7 +122,7 @@
         name: portainer_test
         user:
         mode: replicated
-        replicas: 1
+        replicas: 2
         image: alpine:3.8
         networks:
           - portainer_agent
