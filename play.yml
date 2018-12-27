@@ -4,6 +4,9 @@
   hosts: raspberry
   become: true
   tasks:
+    - name: Configure host name
+      hostname:
+        name: "{{ ansible_hostname }}"
     - name: Configure default user
       user:
         name: pi
@@ -65,7 +68,7 @@
         image: alpine:edge
         args:
           - "sleep"
-          - "7200"
+          - "20"
         update_order: start-first
         update_parallelism: 2
         update_delay: 5
