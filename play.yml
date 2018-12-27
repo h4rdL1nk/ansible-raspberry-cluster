@@ -67,15 +67,17 @@
   tasks:
     - name: Create portainer network
       docker_network:
-        name: portainer
+        state: present
+        name: portainer_agent
         driver: overlay
     - name: Deploy portainer agent
       docker_swarm_service:
-        name: portainer-agent
+        name: portainer_agent
+        user:
         mode: global
-        image: portainer/agent
+        image: portainer/agent:latest
         networks:
-          - portainer
+          - portainer_agent
         constraints:
           - "node.platform.os == linux"
         env:
@@ -93,22 +95,41 @@
         update_monitor: 500
     - name: Deploy portainer server
       docker_swarm_service:
-        name: portainer-server
+        name: portainer_server
+        user:
         mode: replicated
         replicas: 1
-        image: portainer/portainer
-        args: 
-          - "-H" 
-          - "tcp://tasks.portainer_agent:9001"
-          - "--tlsskipverify"
+        image: portainer/portainer:latest
         networks:
-          - portainer
+          - portainer_agent
+        #args: 
+        #  - "-H" 
+        #  - "tcp://tasks.portainer_agent:9001"
+        #  - "--tlsskipverify"
         constraints:
           - "node.role == manager"
         publish:
           - published_port: 9000
             target_port: 9000
             protocol: tcp
+        update_order: start-first
+        update_parallelism: 2
+        update_delay: 5
+        update_monitor: 500
+    - name: Deploy test container
+      docker_swarm_service:
+        name: portainer_test
+        user:
+        mode: replicated
+        replicas: 1
+        image: alpine:3.8
+        networks:
+          - portainer_agent
+        args:
+          - "sleep"
+          - "7200"
+        constraints:
+          - "node.role == manager"
         update_order: start-first
         update_parallelism: 2
         update_delay: 5
