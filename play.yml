@@ -62,13 +62,14 @@
       when: inventory_hostname in groups['docker-swarm-worker']
     - name: Create service
       docker_swarm_service:
-        name: test
+        name: webserver
         mode: replicated
         replicas: 4
-        image: alpine:edge
-        args:
-          - "sleep"
-          - "20"
+        image: httpd:alpine
+        publish:
+          - published_port: 8080 
+            target_port: 80
+            protocol: tcp
         update_order: start-first
         update_parallelism: 2
         update_delay: 5
