@@ -67,7 +67,7 @@
           -   "sleep"
           -   "7200"
         update_order: start-first
-        update_parallelistm: 2
+        update_parallelism: 2
         update_delay: 5
         update_monitor: 500
       when: inventory_hostname == groups['docker-swarm-manager'][0]
