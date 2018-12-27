@@ -64,8 +64,8 @@
         replicas: 4
         image: alpine:edge
         args:
-          -   "sleep"
-          -   "7200"
+          -  "sleep"
+          -  "7200"
         update_order: start-first
         update_parallelism: 2
         update_delay: 5
