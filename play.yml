@@ -60,18 +60,56 @@
           -  "{{ hostvars[groups['docker-swarm-manager'][0]]['ansible_host'] }}"
         join_token: "{{ hostvars[groups['docker-swarm-manager'][0]]['WORKER_TOKEN'] }}" 
       when: inventory_hostname in groups['docker-swarm-worker']
-    - name: Create service
+
+- name: Deploy components
+  hosts: docker-swarm-manager
+  become: true
+  tasks:
+    - name: Create portainer network
+      docker_network:
+        name: portainer
+        driver: overlay
+    - name: Deploy portainer agent
       docker_swarm_service:
-        name: webserver
+        name: portainer-agent
+        mode: global
+        image: portainer/agent
+        networks:
+          - portainer
+        constraints:
+          - "node.platform.os == linux"
+        env:
+          - AGENT_CLUSTER_ADDR=tasks.portainer_agent
+        mounts:
+          - source: /var/run/docker.sock
+            target: /var/run/docker.sock
+            type: bind
+          - source: /var/lib/docker/volumes
+            target: /var/lib/docker/volumes
+            type: bind
+        update_order: start-first
+        update_parallelism: 2
+        update_delay: 5
+        update_monitor: 500
+    - name: Deploy portainer server
+      docker_swarm_service:
+        name: portainer-server
         mode: replicated
-        replicas: 4
-        image: httpd:alpine
+        replicas: 1
+        image: portainer/portainer
+        args: 
+          - "-H" 
+          - "tcp://tasks.portainer_agent:9001"
+          - "--tlsskipverify"
+        networks:
+          - portainer
+        constraints:
+          - "node.role == manager"
         publish:
-          - published_port: 8080 
-            target_port: 80
+          - published_port: 9000
+            target_port: 9000
             protocol: tcp
         update_order: start-first
         update_parallelism: 2
         update_delay: 5
         update_monitor: 500
-      when: inventory_hostname == groups['docker-swarm-manager'][0]
