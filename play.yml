@@ -1,0 +1,73 @@
+---
+
+- name: Raspberry PI bootstrap
+  hosts: raspberry
+  become: true
+  tasks:
+    - name: Configure default user
+      user:
+        name: pi
+        state: present
+        groups:
+          - sudo
+          - docker
+        append: true
+    - name: Add repositories
+      apt_repository:
+        state: present
+        repo: deb [arch=armhf] https://download.docker.com/linux/raspbian stretch edge
+        update_cache: true
+    - name: Install packages
+      apt:
+        state: latest
+        name:
+          - netcat
+          - docker
+          - python-pip
+        update_cache: false
+    - name: Install python packages
+      pip:
+        state: latest
+        name:
+          - docker
+          - docker-compose
+    - name: Start system services
+      service:
+        state: started
+        enabled: true
+        name: "{{ item }}"
+      with_items:
+        - docker
+    - name: Create swarm
+      docker_swarm:
+        state: present
+        advertise_addr: eth0
+      when: inventory_hostname == groups['docker-swarm-manager'][0]
+      register: swarm_create
+    - name: Set manager token variables
+      set_fact:
+        WORKER_TOKEN: "{{ swarm_create.swarm_facts.JoinTokens.Worker }}"
+        MANAGER_TOKEN: "{{ swarm_create.swarm_facts.JoinTokens.Manager }}"
+      when: inventory_hostname == groups['docker-swarm-manager'][0]
+    - name: Add worker nodes
+      docker_swarm:
+        state: join
+        advertise_addr: eth0
+        remote_addrs:
+          -  "{{ hostvars[groups['docker-swarm-manager'][0]]['ansible_host'] }}"
+        join_token: "{{ hostvars[groups['docker-swarm-manager'][0]]['WORKER_TOKEN'] }}" 
+      when: inventory_hostname in groups['docker-swarm-worker']
+    - name: Create service
+      docker_swarm_service:
+        name: test
+        mode: replicated
+        replicas: 4
+        image: alpine:edge
+        args:
+          -   "sleep"
+          -   "7200"
+        update_order: start-first
+        update_parallelistm: 2
+        update_delay: 5
+        update_monitor: 500
+      when: inventory_hostname == groups['docker-swarm-manager'][0]
