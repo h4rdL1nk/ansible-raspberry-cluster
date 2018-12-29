@@ -21,7 +21,7 @@
           - "node.platform.os == linux"
         env:
           - AGENT_CLUSTER_ADDR=tasks.portainer_agent
-          - LOG_LEVEL=DEBUG
+          - LOG_LEVEL=debug
         mounts:
           - source: /var/run/docker.sock
             target: /var/run/docker.sock
@@ -45,8 +45,15 @@
         mode: replicated
         replicas: 1
         image: portainer/portainer:latest
+        args: 
+          - "-H" 
+          - "unix:///var/run/docker.sock"
         networks:
           - portainer_agent
+        mounts:
+          - source: /var/run/docker.sock
+            target: /var/run/docker.sock
+            type: bind
         constraints:
           - "node.role == manager"
         publish:
