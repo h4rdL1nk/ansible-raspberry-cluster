@@ -3,12 +3,17 @@
 raspberry:
   vars:
     ansible_ssh_user: pi
-    ansible_ssh_pass: rpiCluster
+    ansible_ssh_pass: raspberry
   hosts:
     rpi-cl-01:
-      ansible_host: 192.168.0.26
+      ansible_host: 192.168.0.101
     rpi-cl-02:
-      ansible_host: 192.168.0.27
+      ansible_host: 192.168.0.102
+
+docker-swarm:
+  hosts:
+    rpi-cl-01:
+    rpi-cl-02:
 
 docker-swarm-manager:
   hosts:

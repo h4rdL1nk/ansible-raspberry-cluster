@@ -1,0 +1,27 @@
+---
+
+- name: Deploy test
+  hosts: docker-swarm-manager
+  become: true
+  tasks:
+    - name: Create test network
+      docker_network:
+        state: present
+        name: test
+        driver: overlay
+    - name: Deploy test service
+      docker_swarm_service:
+        name: test
+        mode: replicated
+        replicas: 8
+        image: httpd:alpine
+        networks:
+          - test
+        publish:
+          - published_port: 8080
+            target_port: 80
+            protocol: tcp
+        update_order: start-first
+        update_parallelism: 2
+        update_delay: 5
+        update_monitor: 500

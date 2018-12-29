@@ -1,0 +1,87 @@
+---
+
+- name: Raspberry PI bootstrap
+  hosts: raspberry
+  become: true
+  tasks:
+    - name: Configure host name
+      hostname:
+        name: "{{ inventory_hostname }}"
+    - name: Configure kernel parameters
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        reload: true
+        sysctl_set: true
+      with_dict:
+        net.ipv6.conf.all.disable_ipv6: 1
+        net.ipv6.conf.default.disable_ipv6: 1
+        net.ipv6.conf.eth0.disable_ipv6: 1
+    - name: Add repositories key
+      apt_key:
+        url: https://download.docker.com/linux/raspbian/gpg
+        state: present
+    - name: Add repositories
+      apt_repository:
+        state: present
+        repo: "deb [arch=armhf] https://download.docker.com/linux/raspbian {{ ansible_distribution_release }} edge"
+        update_cache: true
+    - name: Install packages
+      apt:
+        state: latest
+        name:
+          - netcat
+          - docker-ce
+          - python-pip
+        update_cache: true
+    - name: Install python packages
+      pip:
+        state: latest
+        name:
+          - docker
+          - docker-compose
+    - name: Configure groups
+      group:
+        state: present
+        name: docker
+    - name: Configure default user
+      user:
+        name: pi
+        state: present
+        groups:
+          - sudo
+          - docker
+        append: true
+    - name: Start system services
+      service:
+        state: started
+        enabled: true
+        name: "{{ item }}"
+      with_items:
+        - docker
+
+
+- name: Raspberry PI bootstrap
+  hosts: docker-swarm
+  become: true
+  tasks:       
+    - name: Create swarm
+      docker_swarm:
+        state: present
+        advertise_addr: eth0
+      when: inventory_hostname == groups['docker-swarm-manager'][0]
+      register: swarm_create
+    - name: Set manager token variables
+      set_fact:
+        WORKER_TOKEN: "{{ swarm_create.swarm_facts.JoinTokens.Worker }}"
+        MANAGER_TOKEN: "{{ swarm_create.swarm_facts.JoinTokens.Manager }}"
+      when: inventory_hostname == groups['docker-swarm-manager'][0]
+    - name: Add worker nodes
+      docker_swarm:
+        state: join
+        advertise_addr: eth0
+        remote_addrs:
+          -  "{{ hostvars[groups['docker-swarm-manager'][0]]['ansible_host'] }}"
+        join_token: "{{ hostvars[groups['docker-swarm-manager'][0]]['WORKER_TOKEN'] }}" 
+      when: inventory_hostname in groups['docker-swarm-worker']
+
