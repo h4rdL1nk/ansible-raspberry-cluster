@@ -1,0 +1,41 @@
+---
+
+- name: Create prometheus configuration on all nodes
+  hosts: docker-swarm
+  become: true
+  tasks:
+    - name: Create docker config directories
+      file:
+        state: directory
+        recurse: true
+        path: "{{ item }}"
+        mode: 0755
+      with_items:
+        - /docker/config/prometheus
+    - name: Copy prometheus config file
+      copy:
+        src: "{{ lookup('env','PWD') }}/config/prometheus/prometheus.yml"
+        dest: /docker/config/prometheus/prometheus.yml
+
+- name: Deploy prometheus
+  hosts: docker-swarm-manager
+  become: true
+  tasks:
+    - name: Deploy service
+      docker_swarm_service:
+        name: prometheus
+        mode: replicated
+        replicas: 1
+        image: rycus86/prometheus
+        mounts:
+          - source: /docker/config/prometheus/prometheus.yml
+            target: /etc/prometheus/prometheus.yml
+            type: bind
+        publish:
+          - published_port: 9090
+            target_port: 9090
+            protocol: tcp
+        update_order: start-first
+        update_parallelism: 2
+        update_delay: 5
+        update_monitor: 500

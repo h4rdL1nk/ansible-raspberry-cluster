@@ -23,6 +23,15 @@
         net.ipv6.conf.all.disable_ipv6: 1
         net.ipv6.conf.default.disable_ipv6: 1
         net.ipv6.conf.eth0.disable_ipv6: 1
+    - name: Create docker config directories
+      file:
+        state: directory
+        recurse: true
+        path: "{{ item }}"
+        mode: 0755
+      with_items:
+        - /etc/docker
+        - /docker/config
     - name: Add repositories key
       apt_key:
         url: https://download.docker.com/linux/raspbian/gpg
