@@ -18,10 +18,15 @@ ansible-playbook playbooks/play.yml
 
 ## Deploy and test service
 ```
-ansible-playbook playbook/test.yml
+ansible-playbook playbooks/test.yml
 
 ### On manager node
 docker service logs -f test
 
 while true;do curl -s 192.168.0.101:8080 -o/dev/null -w "%{http_code} %{time_total}\n";done
+```
+
+## Deploy portainer server and agents
+```
+ansible-playbook playbooks/portainer.yml
 ```
